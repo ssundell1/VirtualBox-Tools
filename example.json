@@ -1,0 +1,31 @@
+{
+    "Machines": [
+        {
+            "Name": "PXEServer",
+            "Firmware": "efi",
+            "Memory": "2048",
+            "Storage": {
+                "Controllers": [
+                    {
+                        "Name": "USBController",
+                        "Type": "usb",
+                        "Logic": "USB",
+                        "Bootable": "on",
+                        "Attachments": [
+                            {
+                                "Type": "hdd",
+                                "FileName": "PXEServer.vmdk",
+                                "Size": "40000"
+                            }
+                        ]
+                    }
+                ]
+            },
+            "NetworkAdapters": [
+                {
+                    "Type": "hostonly"
+                }
+            ]
+        }
+    ]
+}
