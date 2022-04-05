@@ -2,6 +2,10 @@
 
 Creates virtual machines based on a JSON configuration file.
 
+* Create your json configuration file.
+* Make sure your VirtualBox workspace is configured to the location where you want your machines.
+* Run Create-Machines.ps1 with your config.
+
 ## JSON Schema
 
 ```
