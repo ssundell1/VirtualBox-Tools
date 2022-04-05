@@ -7,9 +7,9 @@ $Config = Get-Content $ConfigFile -Raw | ConvertFrom-JSON
 
 $RegisteredMachines = & $VBoxManage list vms
 
-Write-Host '=============================================================='
+Write-Host '================================================================'
 Write-Host 'Purging any existing machines...'
-Write-Host '=============================================================='
+Write-Host '================================================================'
 
 ForEach($Machine in $Config.Machines) {
     if($RegisteredMachines -match $Machine.Name) {

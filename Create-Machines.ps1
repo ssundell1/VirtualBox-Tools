@@ -1,7 +1,7 @@
 param(
     [Parameter()][string]$VBoxManage = "C:\Program Files\Oracle\VirtualBox\VBoxManage.exe",
     [Parameter()][string]$ConfigFile = ".\example.json",
-    [Parameter()][string]$Workspace = "C:\Users\sebas\VirtualMachines",
+    [Parameter()][string]$Workspace = "C:\VirtualMachines",
     [Parameter()][switch]$Force
  )
 
