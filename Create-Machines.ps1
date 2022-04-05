@@ -1,20 +1,42 @@
 param(
     [Parameter()][string]$VBoxManage = "C:\Program Files\Oracle\VirtualBox\VBoxManage.exe",
-    [Parameter()][string]$ConfigFile = ".\config.json",
-    [Parameter()][string]$Workspace = "C:\Users\sebas\VirtualMachines"
+    [Parameter()][string]$ConfigFile = ".\example.json",
+    [Parameter()][string]$Workspace = "C:\Users\sebas\VirtualMachines",
+    [Parameter()][switch]$Force
  )
 
+if(!(Test-Path $ConfigFile)) {
+    Throw "Could not find config file!"
+}
 $Config = Get-Content $ConfigFile -Raw | ConvertFrom-JSON
 
 Function Get-VM-Info($Config) {
+    Write-Host '================================================================'
+    Write-Host 'Parsing machines...'
+    Write-Host '================================================================'
+
+    if([string](Get-Content $ConfigFile) | Test-Json) {
+        Write-Host -ForegroundColor Green -Object "`nConfiguration is valid JSON!`n"
+    } else {
+        Throw "Configuration is not valid JSON! Check your config file."
+    }
+
     ForEach ($Machine in $Config.Machines) {
         Write-Host "Machine:"$Machine.Name
         Write-Host "`tSystem:"$Machine.Firmware
-        ForEach($NetworkAdapter in $Machine.NetworkAdapaters) {
-            Write-Host "`tNetworkAdapater:"$NetworkAdapter.Type
+        Write-Host "`tMemory:"$Machine.Memory
+        ForEach($NetworkAdapter in $Machine.NetworkAdapters) {
+            Write-Host "`tNetworkAdapter:"$NetworkAdapter.Type
+            Write-Host "`t`tConnected:"$NetworkAdapter.Connected
+            if($NetworkAdapter.Type -eq "bridged") {
+                Write-Host "`t`tBridgeAdapter:"$NetworkAdapter.BridgeAdapter
+            }
         }
         ForEach ($Controller in $Machine.Storage.Controllers) {
             Write-Host "`tStorageController:"$Controller.Name
+            Write-Host "`t`tType:"$Controller.Type
+            Write-Host "`t`tLogic:"$Controller.Logic
+            Write-Host "`t`tBootable:"$Controller.Bootable
             ForEach($Attachment in $Controller.Attachments) {
                 Write-Host "`t`tAttachment:"$Attachment.Name
                 Write-Host "`t`t`tType:"$Attachment.Type
@@ -26,25 +48,39 @@ Function Get-VM-Info($Config) {
 }
 
 Get-VM-Info($Config)
-
+& '.\Purge-Machines.ps1'
 & '.\Clean-Registered-Disks.ps1'
+
+Write-Host '================================================================'
+Write-Host 'Creating machines...'
+Write-Host '================================================================'
 
 ForEach ($Machine in $Config.Machines) {
     # Create VM
-    Write-Host "[+] CREATING MACHINE"$Machine.Name
-    & $VBoxManage createvm --name $Machine.Name --register
+    Write-Host $Machine.Name'...'
+    & $VBoxManage createvm --name $Machine.Name --register > $null
     # Set firmware
-    & $VBoxManage modifyvm $Machine.Name --firmware $Machine.Firmware
+    & $VBoxManage modifyvm $Machine.Name --firmware $Machine.Firmware > $null
     # Set Memory
-    & $VBoxManage modifyvm $Machine.Name --memory $Machine.Memory
+    & $VBoxManage modifyvm $Machine.Name --memory $Machine.Memory > $null
+    # Set VideoMemory
+    & $VBoxManage modifyvm $Machine.Name --vram $Machine.VideoMemory > $null
     # Enable USB 3.0
-    & $VBoxManage modifyvm $Machine.Name --usbxhci on
+    & $VBoxManage modifyvm $Machine.Name --usbxhci on > $null
 
     $NetAdapterIndex = 1
     ForEach($NetworkAdapter in $Machine.NetworkAdapters) {
         # Add Network Adapters
-        & $VBoxManage modifyvm $Machine.Name `
-            --nic$NetAdapterIndex $NetworkAdapter.Type
+        if($NetworkAdapter.Type -eq "hostonly") {
+            & $VBoxManage modifyvm $Machine.Name `
+            --nic$NetAdapterIndex $NetworkAdapter.Type `
+            --hostonlyadapter$NetAdapterIndex $NetworkAdapter.HostOnlyAdapter > $null
+        }
+        if($NetworkAdapter.Type -eq "bridged") {
+            & $VBoxManage modifyvm $Machine.Name `
+            --nic$NetAdapterIndex $NetworkAdapter.Type `
+            --bridgeadapter$NetAdapterIndex $NetworkAdapter.BridgeAdapter > $null
+        }
         $NetAdapterIndex++
     }
 
@@ -55,7 +91,7 @@ ForEach ($Machine in $Config.Machines) {
             --name $Controller.Name `
             --add $Controller.Type `
             --controller $Controller.Logic `
-            --bootable $Controller.Bootable
+            --bootable $Controller.Bootable > $null
 
         $AttachmentIndex = 0
         ForEach($Attachment in $Controller.Attachments) {
@@ -67,14 +103,14 @@ ForEach ($Machine in $Config.Machines) {
                 if($Attachment.Size -ne "") {
                     # Create medium
                     if($Attachment.FileName -eq "") {
-                        Throw "No file name found for storage attachment."
+                        Write-Warning "No file name found for storage attachment. Generated $($Machine.Name).vmdk"
+                        $Attachment.FileName = "$($Machine.Name).vmdk"
                     }
                     $FilePath = Join-Path $Workspace $Machine.Name $Attachment.FileName
-                    Write-Host $FilePath
                     & $VBoxManage createmedium disk `
                         --filename $FilePath `
                         --size $Attachment.Size `
-                        --format VMDK
+                        --format VMDK > $null
                 }
             }
             # Create storage attachments
@@ -82,9 +118,17 @@ ForEach ($Machine in $Config.Machines) {
                 --storagectl $Controller.Name `
                 --type $Attachment.Type `
                 --medium $FilePath `
-                --port $AttachmentIndex
+                --port $AttachmentIndex > $null
 
             $AttachmentIndex++
+        }
+
+        # Check to make sure VM exists
+        $RegisteredMachines = & $VBoxManage list vms
+        if($RegisteredMachines -match $Machine.Name) {
+            Write-Host -ForegroundColor Green -Object 'Success!'
+        } else {
+            Write-Host -ForegroundColor Red -Object 'Failed!'
         }
     }
 }

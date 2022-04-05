@@ -1,6 +1,6 @@
 param(
     [Parameter()][string]$VBoxManage = "C:\Program Files\Oracle\VirtualBox\VBoxManage.exe",
-    [Parameter()][string]$ConfigFile = ".\config.json"
+    [Parameter()][string]$ConfigFile = ".\example.json"
  )
 
 $Config = Get-Content $ConfigFile -Raw | ConvertFrom-JSON
@@ -14,6 +14,10 @@ $Location = $Location.Split('',[System.StringSplitOptions]::RemoveEmptyEntries)
 $UUID = $ListHddsRaw | findstr '^UUID:'
 $UUID = $UUID.Split("UUID:")
 $UUID = $UUID.Split('',[System.StringSplitOptions]::RemoveEmptyEntries)
+
+Write-Host '================================================================'
+Write-Host 'Cleaning registered disks...'
+Write-Host '================================================================'
 
 $DeletedDisks = $:False
 ForEach($Machine in $Config.Machines) {
@@ -29,3 +33,5 @@ ForEach($Machine in $Config.Machines) {
 If(!$DeletedDisks) {
     Write-Host "No disks to delete"
 }
+
+Write-Host -ForegroundColor Green -Object "Finished!"
