@@ -60,17 +60,22 @@ ForEach ($Machine in $Config.Machines) {
     Write-Host $Machine.Name'...'
     & $VBoxManage createvm --name $Machine.Name --register > $null
     # Set firmware
+    Write-Host "Set firmare"
     & $VBoxManage modifyvm $Machine.Name --firmware $Machine.Firmware > $null
     # Set Memory
+    Write-Host "Set Memory"
     & $VBoxManage modifyvm $Machine.Name --memory $Machine.Memory > $null
     # Set VideoMemory
+    Write-Host "Set VideoMemory"
     & $VBoxManage modifyvm $Machine.Name --vram $Machine.VideoMemory > $null
     # Enable USB 3.0
+    Write-Host "Enable USB 3.0"
     & $VBoxManage modifyvm $Machine.Name --usbxhci on > $null
 
     $NetAdapterIndex = 1
     ForEach($NetworkAdapter in $Machine.NetworkAdapters) {
         # Add Network Adapters
+        Write-Host "Add Network Adapters"
         if($NetworkAdapter.Type -eq "hostonly") {
             & $VBoxManage modifyvm $Machine.Name `
             --nic$NetAdapterIndex $NetworkAdapter.Type `
@@ -87,6 +92,7 @@ ForEach ($Machine in $Config.Machines) {
     # Storage Controllers
     ForEach ($Controller in $Machine.Storage.Controllers) {
         # Create storage controllers
+        Write-Host "Create storage controllers"
         & $VBoxManage storagectl $Machine.Name `
             --name $Controller.Name `
             --add $Controller.Type `
@@ -95,9 +101,11 @@ ForEach ($Machine in $Config.Machines) {
 
         $AttachmentIndex = 0
         ForEach($Attachment in $Controller.Attachments) {
+            Write-Host "Handle attachments"
             # Check if file exists
             if(Test-Path($Attachment.FileName)) {
                 Write-Host $Attachment.FileName"found. Attaching..."
+                $FilePath = $Attachment.FileName
             } else {
                 # If it doesn't exist, create a new virtual hdd
                 if($Attachment.Size -ne "") {

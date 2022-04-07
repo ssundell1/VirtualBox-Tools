@@ -8,24 +8,26 @@ $Config = Get-Content $ConfigFile -Raw | ConvertFrom-JSON
 $ListHddsRaw = & $VBoxManage list hdds
 
 $Location = $ListHddsRaw | findstr '^Location'
-$Location = $Location.Split("Location:")
-$Location = $Location.Split('',[System.StringSplitOptions]::RemoveEmptyEntries)
+If($Location) {
+    $Location = $Location.Split("Location:")
+    $Location = $Location.Split('',[System.StringSplitOptions]::RemoveEmptyEntries)
 
-$UUID = $ListHddsRaw | findstr '^UUID:'
-$UUID = $UUID.Split("UUID:")
-$UUID = $UUID.Split('',[System.StringSplitOptions]::RemoveEmptyEntries)
+    $UUID = $ListHddsRaw | findstr '^UUID:'
+    $UUID = $UUID.Split("UUID:")
+    $UUID = $UUID.Split('',[System.StringSplitOptions]::RemoveEmptyEntries)
 
-Write-Host '================================================================'
-Write-Host 'Cleaning registered disks...'
-Write-Host '================================================================'
+    Write-Host '================================================================'
+    Write-Host 'Cleaning registered disks...'
+    Write-Host '================================================================'
 
-$DeletedDisks = $:False
-ForEach($Machine in $Config.Machines) {
-    for($i=0;$i -lt $Location.Length;$i++) {
-        If($Location[$i] -match $Machine.Name) {
-            Write-Host "Deleting disk:"$UUID[$i].Trim()
-            & $VBoxManage closemedium disk $UUID[$i].Trim() --delete
-            $DeletedDisks = $:True
+    $DeletedDisks = $:False
+    ForEach($Machine in $Config.Machines) {
+        for($i=0;$i -lt $Location.Length;$i++) {
+            If($Location[$i] -match $Machine.Name) {
+                Write-Host "Deleting disk:"$UUID[$i].Trim()
+                & $VBoxManage closemedium disk $UUID[$i].Trim() --delete
+                $DeletedDisks = $:True
+            }
         }
     }
 }
