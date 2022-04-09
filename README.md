@@ -2,9 +2,16 @@
 
 Creates virtual machines based on a JSON configuration file.
 
+## Prerequisites
+
+* Install VirtualBox
+* Install VirtualBox Extension Pack
+
+## How To
+
 * Create your json configuration file.
 * Make sure your VirtualBox workspace is configured to the location where you want your machines.
-* Run Create-Machines.ps1 with your config.
+* Run Create-Machines.ps1 with your config file.
 
 ## JSON Schema
 
@@ -37,8 +44,8 @@ Creates virtual machines based on a JSON configuration file.
                 {
                     "Type": "none|null|nat|natnetwork|bridged|intnet|hostonly|generic",
                     "Connected": "on|off",
-                    "BridgeAdapter": "none|[devicename]"
-                    "HostOnlyAdapter": "none|[devicename]"
+                    "BridgeAdapter": "[devicename]"
+                    "HostOnlyAdapter": "[devicename]"
                 }
             ]
         }

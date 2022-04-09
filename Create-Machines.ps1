@@ -10,46 +10,9 @@ if(!(Test-Path $ConfigFile)) {
 }
 $Config = Get-Content $ConfigFile -Raw | ConvertFrom-JSON
 
-Function Get-VM-Info($Config) {
-    Write-Host '================================================================'
-    Write-Host 'Parsing machines...'
-    Write-Host '================================================================'
-
-    if([string](Get-Content $ConfigFile) | Test-Json) {
-        Write-Host -ForegroundColor Green -Object "`nConfiguration is valid JSON!`n"
-    } else {
-        Throw "Configuration is not valid JSON! Check your config file."
-    }
-
-    ForEach ($Machine in $Config.Machines) {
-        Write-Host "Machine:"$Machine.Name
-        Write-Host "`tSystem:"$Machine.Firmware
-        Write-Host "`tMemory:"$Machine.Memory
-        ForEach($NetworkAdapter in $Machine.NetworkAdapters) {
-            Write-Host "`tNetworkAdapter:"$NetworkAdapter.Type
-            Write-Host "`t`tConnected:"$NetworkAdapter.Connected
-            if($NetworkAdapter.Type -eq "bridged") {
-                Write-Host "`t`tBridgeAdapter:"$NetworkAdapter.BridgeAdapter
-            }
-        }
-        ForEach ($Controller in $Machine.Storage.Controllers) {
-            Write-Host "`tStorageController:"$Controller.Name
-            Write-Host "`t`tType:"$Controller.Type
-            Write-Host "`t`tLogic:"$Controller.Logic
-            Write-Host "`t`tBootable:"$Controller.Bootable
-            ForEach($Attachment in $Controller.Attachments) {
-                Write-Host "`t`tAttachment:"$Attachment.Name
-                Write-Host "`t`t`tType:"$Attachment.Type
-                Write-Host "`t`t`tFile:"$Attachment.FileName
-                Write-Host "`t`t`tSize:"$Attachment.Size
-            }
-        }
-    }
-}
-
-Get-VM-Info($Config)
-& '.\Purge-Machines.ps1'
-& '.\Clean-Registered-Disks.ps1'
+& ".\Check-Config" -ConfigFile $ConfigFile
+& '.\Purge-Machines.ps1' -ConfigFile $ConfigFile
+& '.\Clean-Registered-Disks.ps1' -ConfigFile $ConfigFile
 
 Write-Host '================================================================'
 Write-Host 'Creating machines...'
