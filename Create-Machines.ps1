@@ -1,8 +1,43 @@
+<#
+    .SYNOPSIS
+    Creates VirtualBox virtual machines from command line.
+
+    .DESCRIPTION
+    Creates virtual machines based on a JSON configuration file.
+
+    .PARAMETER VBoxManage
+    Path to the VBoxManage.exe binary from VirtualBox.
+    Default = "C:\Program Files\Oracle\VirtualBox\VBoxManage.exe"
+
+    .PARAMETER ConfigFile
+    Path to the configuration file with virtual machine specificatins.
+    Default = ".\example.json"
+
+    .PARAMETER Workspace
+    Path to the directory where the virtual machines will be created.
+    Default = "C:\VirtualMachines"
+
+    .PARAMETER Force
+    Force script to purge any existing virtual machines with the same name as a new machine.
+    Default = False
+
+    .PARAMETER TurnOn
+    Tell VirtualBox to power on the machine after they have been created.
+    Default = False
+
+    .INPUTS
+    None. You cannot pipe objects to Create-Machines.ps1.
+
+    .OUTPUTS
+    None.
+#>
+
 param(
     [Parameter()][string]$VBoxManage = "C:\Program Files\Oracle\VirtualBox\VBoxManage.exe",
     [Parameter()][string]$ConfigFile = ".\example.json",
     [Parameter()][string]$Workspace = "C:\VirtualMachines",
-    [Parameter()][switch]$Force
+    [Parameter()][switch]$Force = $False,
+    [Parameter()][switch]$TurnOn
  )
 
 if(!(Test-Path $ConfigFile)) {
@@ -11,7 +46,7 @@ if(!(Test-Path $ConfigFile)) {
 $Config = Get-Content $ConfigFile -Raw | ConvertFrom-JSON
 
 & ".\Check-Config" -ConfigFile $ConfigFile
-& '.\Purge-Machines.ps1' -ConfigFile $ConfigFile
+& '.\Purge-Machines.ps1' -ConfigFile $ConfigFile -Force $Force
 & '.\Clean-Registered-Disks.ps1' -ConfigFile $ConfigFile
 
 Write-Host '================================================================'
@@ -21,7 +56,7 @@ Write-Host '================================================================'
 ForEach ($Machine in $Config.Machines) {
     # Create VM
     Write-Host $Machine.Name'...'
-    & $VBoxManage createvm --name $Machine.Name --register > $null
+    & $VBoxManage createvm --name $Machine.Name --basefolder $Workspace --register > $null
     # Set firmware
     Write-Host "Set firmare"
     & $VBoxManage modifyvm $Machine.Name --firmware $Machine.Firmware > $null
@@ -93,13 +128,18 @@ ForEach ($Machine in $Config.Machines) {
 
             $AttachmentIndex++
         }
+    }
+    # Check to make sure VM exists
+    $RegisteredMachines = & $VBoxManage list vms
+    if($RegisteredMachines -match $Machine.Name) {
+        Write-Host -ForegroundColor Green -Object 'Success!'
+    } else {
+        Write-Host -ForegroundColor Red -Object 'Failed!'
+    }
 
-        # Check to make sure VM exists
-        $RegisteredMachines = & $VBoxManage list vms
-        if($RegisteredMachines -match $Machine.Name) {
-            Write-Host -ForegroundColor Green -Object 'Success!'
-        } else {
-            Write-Host -ForegroundColor Red -Object 'Failed!'
-        }
+    # Start VM if TurnOn switch is supplied
+    If($TurnOn) {
+        Write-Host 'Starting Machine...'
+        & $VBoxManage startvm $Machine.Name
     }
 }
