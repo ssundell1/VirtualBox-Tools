@@ -45,9 +45,9 @@ if(!(Test-Path $ConfigFile)) {
 }
 $Config = Get-Content $ConfigFile -Raw | ConvertFrom-JSON
 
-& ".\Check-Config" -ConfigFile $ConfigFile
-& '.\Purge-Machines.ps1' -ConfigFile $ConfigFile -Force $Force
-& '.\Clean-Registered-Disks.ps1' -ConfigFile $ConfigFile
+& "$PSScriptRoot\Check-Config" -ConfigFile $ConfigFile
+& "$PSScriptRoot\Purge-Machines.ps1" -ConfigFile $ConfigFile -Force $Force
+& "$PSScriptRoot\Clean-Registered-Disks.ps1" -ConfigFile $ConfigFile
 
 Write-Host '================================================================'
 Write-Host 'Creating machines...'
