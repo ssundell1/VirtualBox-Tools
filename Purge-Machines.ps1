@@ -1,7 +1,8 @@
 param(
     [Parameter()][string]$VBoxManage = "C:\Program Files\Oracle\VirtualBox\VBoxManage.exe",
     [Parameter()][string]$ConfigFile = ".\example.json",
-    [Parameter()][bool]$Force = $False
+    [Parameter()][bool]$Force = $False,
+    [Parameter()][string]$Workspace = "C:\VirtualMachines"
  )
 
 $Config = Get-Content $ConfigFile -Raw | ConvertFrom-JSON
@@ -19,7 +20,19 @@ ForEach($Machine in $Config.Machines) {
             Write-Host 'Force flag set. Deleting VM...'
             & $VBoxManage unregistervm --delete $Machine.Name > $null
         } Else {
-            Throw 'Force flag is not set. Will leave existing VMs. Exiting.'
+            Write-Warning 'Force flag is not set. Will leave existing VMs.'
+        }
+    } else {
+        Write-Host 'Machine'$Machine.Name'does not exist.'
+    }
+    if(Test-Path "$Workspace\$($Machine.Name)") {
+        Write-Host 'Machine'$Machine.Name'still has files.'
+        If($Force) {
+            Write-Host 'Force flag set. Deleting VM file...'
+            Remove-Item "$Workspace\$($Machine.Name)" -Recurse -Force > $null
+        } Else {
+            Write-Warning 'Force flag is not set. Will leave existing VM files.'
+            Throw "Use Force flag to remove existing VMs"
         }
     } else {
         Write-Host 'Machine'$Machine.Name'does not exist.'

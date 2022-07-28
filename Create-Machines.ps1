@@ -97,6 +97,11 @@ ForEach ($Machine in $Config.Machines) {
             --controller $Controller.Logic `
             --bootable $Controller.Bootable > $null
 
+        # Enable Host I/O Caching
+        & $VBoxManage storagectl $Machine.Name `
+        --name $Controller.Name `
+        --hostiocache on > $null
+        
         $AttachmentIndex = 0
         ForEach($Attachment in $Controller.Attachments) {
             Write-Host "Handle attachments"
