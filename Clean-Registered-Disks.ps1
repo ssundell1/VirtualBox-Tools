@@ -1,6 +1,6 @@
 param(
     [Parameter()][string]$VBoxManage = "C:\Program Files\Oracle\VirtualBox\VBoxManage.exe",
-    [Parameter()][string]$ConfigFile = ".\example.json"
+    [Parameter()][string]$ConfigFile
  )
 
 $Config = Get-Content $ConfigFile -Raw | ConvertFrom-JSON
@@ -25,7 +25,7 @@ If($Location) {
         for($i=0;$i -lt $Location.Length;$i++) {
             If($Location[$i] -match $Machine.Name) {
                 Write-Host "Deleting disk:"$UUID[$i].Trim()
-                & $VBoxManage closemedium disk $UUID[$i].Trim() --delete
+                & $VBoxManage closemedium disk $UUID[$i].Trim()
                 $DeletedDisks = $:True
             }
         }

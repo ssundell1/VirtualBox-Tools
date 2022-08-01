@@ -66,7 +66,7 @@ SYNOPSIS
 
 
 SYNTAX
-    C:\Users\sebas\Documents\Git\VirtualBox-Tools\Create-Machines.ps1 [[-VBoxManage] <String>] [[-ConfigFile] <String>] [[-Workspace] <String>] [-Force] [-TurnOn] [<CommonParameters>]
+    C:\Users\sebas\Documents\Git\VirtualBox-Tools\Create-Machines.ps1 [[-VBoxManage] <String>] [[-ConfigFile] <String>] [[-Workspace] <String>] [-Force] [-Start] [<CommonParameters>]
 
 
 DESCRIPTION
@@ -114,7 +114,7 @@ PARAMETERS
         Accept pipeline input?       false
         Accept wildcard characters?  false
 
-    -TurnOn [<SwitchParameter>]
+    -Start [<SwitchParameter>]
         Tell VirtualBox to power on the machine after they have been created.
         Default = False
 

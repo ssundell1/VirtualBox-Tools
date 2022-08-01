@@ -21,7 +21,7 @@
     Force script to purge any existing virtual machines with the same name as a new machine.
     Default = False
 
-    .PARAMETER TurnOn
+    .PARAMETER Start
     Tell VirtualBox to power on the machine after they have been created.
     Default = False
 
@@ -34,11 +34,15 @@
 
 param(
     [Parameter()][string]$VBoxManage = "C:\Program Files\Oracle\VirtualBox\VBoxManage.exe",
-    [Parameter()][string]$ConfigFile = ".\example.json",
+    [Parameter()][string]$ConfigFile,
     [Parameter()][string]$Workspace = "C:\VirtualMachines",
     [Parameter()][switch]$Force = $False,
-    [Parameter()][switch]$TurnOn
+    [Parameter()][switch]$Start
  )
+
+if($ConfigFile -eq "") {
+    Throw "No configuration (-ConfigFile) file supplied. See example.json"
+}
 
 if(!(Test-Path $ConfigFile)) {
     Throw "Could not find config file!"
@@ -58,28 +62,33 @@ ForEach ($Machine in $Config.Machines) {
     Write-Host $Machine.Name'...'
     & $VBoxManage createvm --name $Machine.Name --basefolder $Workspace --register > $null
     # Set firmware
-    Write-Host "Set firmare"
+    Write-Host "`t-Set Firmare"
+    Write-Host "`t`t[$($Machine.Firmware)]"
     & $VBoxManage modifyvm $Machine.Name --firmware $Machine.Firmware > $null
     # Set Memory
-    Write-Host "Set Memory"
+    Write-Host "`t-Set Memory"
+    Write-Host "`t`t[$($Machine.Memory) MB]"
     & $VBoxManage modifyvm $Machine.Name --memory $Machine.Memory > $null
     # Set VideoMemory
-    Write-Host "Set VideoMemory"
+    Write-Host "`t-Set VideoMemory"
+    Write-Host "`t`t[$($Machine.VideoMemory) MB]"
     & $VBoxManage modifyvm $Machine.Name --vram $Machine.VideoMemory > $null
     # Enable USB 3.0
-    Write-Host "Enable USB 3.0"
+    Write-Host "`t-Enable USB 3.0"
     & $VBoxManage modifyvm $Machine.Name --usbxhci on > $null
 
     $NetAdapterIndex = 1
+    Write-Host "`t-Add Network Adapters"
     ForEach($NetworkAdapter in $Machine.NetworkAdapters) {
         # Add Network Adapters
-        Write-Host "Add Network Adapters"
         if($NetworkAdapter.Type -eq "hostonly") {
+            Write-Host "`t`t[NIC$($NetAdapterIndex) - $($NetworkAdapter.Type) - $($NetworkAdapter.HostOnlyAdapter)]"
             & $VBoxManage modifyvm $Machine.Name `
             --nic$NetAdapterIndex $NetworkAdapter.Type `
             --hostonlyadapter$NetAdapterIndex $NetworkAdapter.HostOnlyAdapter > $null
         }
         if($NetworkAdapter.Type -eq "bridged") {
+            Write-Host "`t`t[NIC$($NetAdapterIndex) - $($NetworkAdapter.Type) - $($NetworkAdapter.BridgeAdapter)]"
             & $VBoxManage modifyvm $Machine.Name `
             --nic$NetAdapterIndex $NetworkAdapter.Type `
             --bridgeadapter$NetAdapterIndex $NetworkAdapter.BridgeAdapter > $null
@@ -88,9 +97,10 @@ ForEach ($Machine in $Config.Machines) {
     }
 
     # Storage Controllers
+    Write-Host "`t-Create storage controllers"
     ForEach ($Controller in $Machine.Storage.Controllers) {
         # Create storage controllers
-        Write-Host "Create storage controllers"
+        Write-Host "`t`t[$($Controller.Logic) $($Controller.Type) controller $($Controller.Name)]"
         & $VBoxManage storagectl $Machine.Name `
             --name $Controller.Name `
             --add $Controller.Type `
@@ -98,16 +108,17 @@ ForEach ($Machine in $Config.Machines) {
             --bootable $Controller.Bootable > $null
 
         # Enable Host I/O Caching
+        Write-Host "`t`t`tEnabling Host I/O Caching..."
         & $VBoxManage storagectl $Machine.Name `
         --name $Controller.Name `
         --hostiocache on > $null
         
         $AttachmentIndex = 0
         ForEach($Attachment in $Controller.Attachments) {
-            Write-Host "Handle attachments"
+            Write-Host "`t-Handle attachments"
             # Check if file exists
             if(Test-Path($Attachment.FileName)) {
-                Write-Host $Attachment.FileName"found. Attaching..."
+                Write-Host "`t`t[$($Attachment.FileName) found]"
                 $FilePath = $Attachment.FileName
             } else {
                 # If it doesn't exist, create a new virtual hdd
@@ -118,6 +129,9 @@ ForEach ($Machine in $Config.Machines) {
                         $Attachment.FileName = "$($Machine.Name).vmdk"
                     }
                     $FilePath = Join-Path $Workspace $Machine.Name $Attachment.FileName
+                    Write-Host "`t`t[$($Attachment.FileName)]"
+                    Write-Host "`t`t`tCreating new disk $($Attachment.FileName) - $($Attachment.Size)..."
+                    Write-Host "`t`t`t" -NoNewLine
                     & $VBoxManage createmedium disk `
                         --filename $FilePath `
                         --size $Attachment.Size `
@@ -125,6 +139,7 @@ ForEach ($Machine in $Config.Machines) {
                 }
             }
             # Create storage attachments
+            Write-Host "`t`t`tAttaching $($Attachment.FileName)..."
             & $VBoxManage storageattach $Machine.Name `
                 --storagectl $Controller.Name `
                 --type $Attachment.Type `
@@ -142,9 +157,11 @@ ForEach ($Machine in $Config.Machines) {
         Write-Host -ForegroundColor Red -Object 'Failed!'
     }
 
-    # Start VM if TurnOn switch is supplied
-    If($TurnOn) {
+    # Start VM if Start switch is supplied
+    If($Start) {
         Write-Host 'Starting Machine...'
         & $VBoxManage startvm $Machine.Name
     }
 }
+
+Write-Host "FINISHED!"

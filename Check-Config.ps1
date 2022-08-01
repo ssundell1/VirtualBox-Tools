@@ -1,5 +1,5 @@
 param(
-    [Parameter()][string]$ConfigFile = ".\example.json"
+    [Parameter()][string]$ConfigFile
 )
 
 # Valid values
@@ -20,7 +20,7 @@ $ValidStorageControllerBootable = ("on","off")
 #### Attachments
 $ValidStorageAttachmentType = ("dvddrive","hdd","fdd")
 $ValidStorageAttachmentFileName = "^[a-zA-z0-9_-]+.vmdk$"
-$ValidStorageAttachmentSize = "^\d+$"
+$ValidStorageAttachmentSize = "^\d*$"
 ## NetworkAdapters
 $ValidNetworkAdaptersType = ("none","null","nat","natnetwork","bridged","intnet","hostonly","generic")
 $ValidNetworkAdaptersConnected = ("on","off")
